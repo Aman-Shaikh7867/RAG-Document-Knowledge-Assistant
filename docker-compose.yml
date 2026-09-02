@@ -1,0 +1,92 @@
+services:
+
+  # ── PostgreSQL with pgvector ──────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: rag-postgres
+    environment:
+      POSTGRES_DB:       ragdb
+      POSTGRES_USER:     raguser
+      POSTGRES_PASSWORD: ragpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U raguser -d ragdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rag-network
+
+  # ── Python FastAPI AI service ─────────────────────────────────
+  rag-ai-service:
+    build:
+      context: ./rag-ai-service
+      dockerfile: Dockerfile
+    container_name: rag-ai-service
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      DATABASE_URL:   postgresql://raguser:ragpass@postgres:5432/ragdb
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rag-network
+
+  # ── Spring Boot backend ───────────────────────────────────────
+  rag-backend:
+    build:
+      context: ./rag-backend
+      dockerfile: Dockerfile
+    container_name: rag-backend
+    environment:
+      SPRING_DATASOURCE_URL:      jdbc:postgresql://postgres:5432/ragdb
+      SPRING_DATASOURCE_USERNAME: raguser
+      SPRING_DATASOURCE_PASSWORD: ragpass
+      JWT_SECRET:                 ${JWT_SECRET}
+      AI_SERVICE_BASE_URL:        http://rag-ai-service:8000
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rag-ai-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rag-network
+
+  # ── React frontend ────────────────────────────────────────────
+  rag-frontend:
+    build:
+      context: ./rag-frontend
+      dockerfile: Dockerfile
+    container_name: rag-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      rag-backend:
+        condition: service_healthy
+    networks:
+      - rag-network
+
+networks:
+  rag-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

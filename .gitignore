@@ -1,0 +1,28 @@
+# Python
+rag-ai-service/.venv/
+rag-ai-service/__pycache__/
+rag-ai-service/.env
+rag-ai-service/app/.env
+**/__pycache__/
+*.pyc
+
+# Java
+rag-backend/target/
+rag-backend/.env
+.env
+
+# Node
+rag-frontend/node_modules/
+rag-frontend/dist/
+rag-frontend/.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
