@@ -716,5 +716,5 @@ CREATE INDEX chunks_embedding_idx
 - Never commit `.env` files — they are in `.gitignore`
 - Change `JWT_SECRET` to a strong random value before any public deployment
 
-
+## Author
 Aman Shaikh — [LinkedIn](www.linkedin.com/in/amanshaikh07) · [Portfolio](https://github.com/Aman-Shaikh7867)
